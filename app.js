@@ -27,6 +27,7 @@ const app = {
   rate: 1,
   lastFrame: 0,
   raf: 0,
+  peakCollapsed: false,   // peak callout minimized to a small pill (tap it to toggle)
 };
 
 /* ─────────────────────────── 1. Physics ─────────────────────────── */
@@ -137,7 +138,11 @@ function resizeCanvas() {
   if (!rect.width) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   view.w = rect.width; view.h = rect.height; view.dpr = dpr;
-  view.pad.l = rect.width < 520 ? 48 : 64;
+  const small = rect.width < 520;
+  view.pad.l = small ? 44 : 64;
+  view.pad.r = small ? 12 : 26;
+  view.pad.t = small ? 14 : 26;
+  view.pad.b = small ? 42 : 48;
   for (const c of [canvas, staticLayer]) {
     c.width = Math.round(rect.width * dpr);
     c.height = Math.round(rect.height * dpr);
@@ -338,15 +343,14 @@ const STYLES = {
     c.beginPath(); c.moveTo(bx, by); c.lineTo(bx, view.Y(0)); c.moveTo(bx, by); c.lineTo(view.pad.l, by); c.stroke();
     c.setLineDash([]); c.globalAlpha = 1;
     // velocity arrows, scaled to the launch speed
-    const vmax = Math.max(Math.hypot(m.vx, m.vy), 1);
-    const k = Math.min(view.pw, view.ph) * 0.3 / vmax;
-    const ex = bx + s.vx * k, ey = by - s.vy * k;
+    const { ex, ey } = vectorGeom(s);
     arrow(c, bx, by, ex, by, P.vx);
     arrow(c, bx, by, bx, ey, P.vy);
     c.globalAlpha = .9; arrow(c, bx, by, ex, ey, P.v, 3); c.globalAlpha = 1;
-    c.font = `600 11px ${MONO}`; c.textBaseline = 'middle';
-    label(c, `Vx ${fmt(s.vx, 2)}`, ex + (s.vx >= 0 ? 6 : -6), by, P.vx, s.vx >= 0 ? 'left' : 'right');
-    if (Math.abs(s.vy * k) > 4) label(c, `Vy ${fmt(s.vy, 2)}`, bx + 8, ey, P.vy, 'left');
+    // labels on a dark pill so they stay readable over the curve / peak box
+    c.font = `600 ${view.w < 520 ? 10 : 11}px ${MONO}`; c.textBaseline = 'middle';
+    pillLabel(c, `Vx ${fmt(s.vx, 2)}`, ex + (s.vx >= 0 ? 8 : -8), by, P.vx, P, s.vx >= 0 ? 'left' : 'right');
+    if (Math.abs(ey - by) > 4) pillLabel(c, `Vy ${fmt(s.vy, 2)}`, bx + 10, ey, P.vy, P, 'left');
     ball(c, bx, by, P, 8);
     c.restore();
   },
@@ -392,31 +396,93 @@ const STYLES = {
   },
 };
 
-function label(c, text, x, y, color, align) { c.textAlign = align; c.fillStyle = color; c.fillText(text, x, y); }
+/** Screen geometry of the velocity arrows (shared by the vectors style and the callout placement). */
+function vectorGeom(s) {
+  const m = app.model, bx = view.X(s.x), by = view.Y(s.y);
+  const k = (Math.min(view.pw, view.ph) * 0.3) / Math.max(Math.hypot(m.vx, m.vy), 1);
+  return { bx, by, ex: bx + s.vx * k, ey: by - s.vy * k };
+}
 
-/** Callout box shown at the peak once the projectile reaches it. */
-function drawPeakCallout(c, P) {
-  const m = app.model;
+/** Text on a small rounded backing; kept inside the canvas. */
+function pillLabel(c, text, x, y, color, P, align) {
+  const w = c.measureText(text).width, h = 16, padX = 5;
+  let left = align === 'left' ? x : x - w;
+  left = Math.max(4 + padX, Math.min(view.w - w - 4 - padX, left));
+  c.fillStyle = P.box; c.globalAlpha = .85;
+  c.beginPath(); c.roundRect(left - padX, y - h / 2, w + padX * 2, h, 5); c.fill();
+  c.globalAlpha = 1; c.textAlign = 'left'; c.fillStyle = color; c.fillText(text, left, y + .5);
+}
+
+/** Distance from point (x, y) to rectangle r (0 if inside). */
+function rectDist(r, x, y) {
+  const dx = Math.max(r.x - x, 0, x - (r.x + r.w)), dy = Math.max(r.y - y, 0, y - (r.y + r.h));
+  return Math.hypot(dx, dy);
+}
+
+/**
+ * Peak callout, placed in whichever free spot is farthest from the ball,
+ * its velocity arrows, the peak marker and the trajectory. A dashed leader
+ * line ties it to the peak. Tap/click it to collapse it to a small pill.
+ */
+function drawPeakCallout(c, P, s) {
+  const m = app.model, small = view.w < 520;
   const px = view.X(m.xPeak), py = view.Y(m.H);
-  const lines = ['PEAK · Vy = 0', `t = ${fmt(m.tPeak)} s`, `x = ${fmt(m.xPeak)} m`, `y = ${fmt(m.H)} m`];
+
+  // halo around the peak marker
   c.save();
-  c.font = `600 11.5px ${MONO}`;
-  const bw = Math.max(...lines.map((l) => c.measureText(l).width)) + 20, bh = lines.length * 16 + 12;
-  let bx = px + 14, by = py + 12;
-  if (bx + bw > view.w - 6) bx = px - bw - 14;
-  if (by + bh > view.Y(0) - 4) by = py - bh - 12;
-  if (by < 4) by = 4;
+  c.strokeStyle = P.peak; c.globalAlpha = .5; c.lineWidth = 1.5;
+  c.beginPath(); c.arc(px, py, 12, 0, Math.PI * 2); c.stroke();
+  c.globalAlpha = 1;
+
+  const fs = small ? 10 : 11.5, lh = small ? 13 : 16;
+  const lines = app.peakCollapsed
+    ? ['PEAK ▸']
+    : ['PEAK · Vy = 0', `t = ${fmt(m.tPeak)} s`, `x = ${fmt(m.xPeak)} m`, `y = ${fmt(m.H)} m`];
+  c.font = `600 ${fs}px ${MONO}`;
+  const bw = Math.max(...lines.map((l) => c.measureText(l).width)) + (small ? 14 : 20);
+  const bh = lines.length * lh + (small ? 8 : 12);
+
+  // candidate spots: the 4 plot corners + beside the peak
+  const L = view.pad.l + 6, R = view.w - view.pad.r - 6 - bw, T = view.pad.t + 4, B = view.Y(0) - 8 - bh;
+  const under = (py + view.Y(0)) / 2 - bh / 2;                 // inside the arch, below the peak
+  const cands = [[L, T], [R, T], [px - bw / 2, under], [px - bw / 2, py + 34], [L, B], [R, B], [px + 16, py + 14], [px - bw - 16, py + 14]]
+    .map(([x, y]) => ({ x: Math.max(4, Math.min(view.w - bw - 4, x)), y: Math.max(4, Math.min(view.Y(0) - bh - 4, y)), w: bw, h: bh }));
+
+  // things the box must not cover
+  const avoid = [[px, py], [view.X(s.x), view.Y(s.y)]];
+  if (app.style === 'vectors') {
+    const g = vectorGeom(s);
+    avoid.push([g.ex, g.by], [g.bx, g.ey], [g.ex, g.ey], [(g.bx + g.ex) / 2, (g.by + g.ey) / 2]);
+  }
+  const path = [];
+  for (let i = 0; i <= 120; i++) { const p = stateAt(m, (m.T * i) / 120); path.push([view.X(p.x), view.Y(p.y)]); }
+  // score = clearance from ball/arrows/peak, minus a heavy penalty for every bit of curve the box would cover
+  const score = (r) => Math.min(80, ...avoid.map(([x, y]) => rectDist(r, x, y)))
+    - 25 * path.filter(([x, y]) => rectDist(r, x, y) < 5).length;
+
+  // hysteresis: only move when another spot is clearly better (no flicker)
+  let best = view.calloutIdx ?? 0, bestScore = score(cands[best]);
+  cands.forEach((r, i) => { const sc = score(r); if (sc > bestScore + 18) { best = i; bestScore = sc; } });
+  view.calloutIdx = best;
+  const r = cands[best];
+  view.calloutRect = r;
+
+  // leader line from box to peak
+  const lx = Math.max(r.x, Math.min(r.x + r.w, px)), ly = Math.max(r.y, Math.min(r.y + r.h, py));
+  if (Math.hypot(lx - px, ly - py) > 14) {
+    c.strokeStyle = P.peak; c.globalAlpha = .6; c.lineWidth = 1; c.setLineDash([3, 3]);
+    c.beginPath(); c.moveTo(lx, ly); c.lineTo(px, py); c.stroke();
+    c.setLineDash([]); c.globalAlpha = 1;
+  }
+
   c.fillStyle = P.box; c.strokeStyle = P.peak; c.lineWidth = 1.2;
-  c.beginPath(); c.roundRect(bx, by, bw, bh, 8); c.fill(); c.stroke();
+  c.beginPath(); c.roundRect(r.x, r.y, r.w, r.h, 8); c.fill(); c.stroke();
   c.textAlign = 'left'; c.textBaseline = 'top';
   lines.forEach((l, i) => {
     c.fillStyle = i === 0 ? P.peak : P.boxText;
-    c.font = i === 0 ? `700 11px ${MONO}` : `11.5px ${MONO}`;
-    c.fillText(l, bx + 10, by + 8 + i * 16);
+    c.font = i === 0 ? `700 ${fs - .5}px ${MONO}` : `${fs}px ${MONO}`;
+    c.fillText(l, r.x + (small ? 7 : 10), r.y + (small ? 5 : 7) + i * lh);
   });
-  // halo around the peak marker
-  c.strokeStyle = P.peak; c.globalAlpha = .5; c.lineWidth = 1.5;
-  c.beginPath(); c.arc(px, py, 12, 0, Math.PI * 2); c.stroke();
   c.restore();
 }
 
@@ -430,8 +496,10 @@ function draw() {
   ctx.drawImage(staticLayer, 0, 0);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const s = stateAt(app.model, app.t);
+  view.calloutRect = null;
+  // callout first, so the ball and velocity arrows are always drawn on top of it
+  if (!app.model.zero && app.t >= app.model.tPeak) drawPeakCallout(ctx, P, s);
   STYLES[app.style](ctx, P, s);
-  if (!app.model.zero && app.t >= app.model.tPeak) drawPeakCallout(ctx, P);
   updateReadout(s);
   syncTable();
 }
@@ -713,6 +781,20 @@ $('gotoPeak').addEventListener('click', () => {
   flashPeak();
 });
 $('csv').addEventListener('click', downloadCSV);
+
+// Tap / click the peak box to collapse or expand it
+const inCallout = (e) => {
+  const r = view.calloutRect;
+  if (!r) return false;
+  const b = canvas.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+  return x >= r.x - 6 && x <= r.x + r.w + 6 && y >= r.y - 6 && y <= r.y + r.h + 6;   // a little slack for fingers
+};
+canvas.addEventListener('click', (e) => {
+  if (!inCallout(e)) return;
+  app.peakCollapsed = !app.peakCollapsed;
+  draw();
+});
+canvas.addEventListener('pointermove', (e) => { canvas.style.cursor = inCallout(e) ? 'pointer' : ''; });
 document.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => selectStyle(b.dataset.style)));
 let rowsQueued = false;                          // at most one table re-render per frame
 tbody.addEventListener('scroll', () => {
