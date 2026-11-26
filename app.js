@@ -550,7 +550,7 @@ function renderRows(force = false) {
   let html = '';
   for (let i = start; i < end; i++) {
     const s = stateAt(m, times[i]);
-    let cls = 'row';
+    let cls = i % 2 ? 'row alt' : 'row';
     if (i === app.peakRow) cls += ' peak';
     if (i === times.length - 1) cls += ' land';
     if (i === active) cls += ' active';
