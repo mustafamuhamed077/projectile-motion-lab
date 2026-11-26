@@ -3,8 +3,8 @@
 An interactive projectile motion simulator that runs in the browser. It has no build step and no dependencies: just `index.html`, `style.css` and `app.js`.
 
 ## Live demos
-- **[Model 1](https://projectile-motion-chi.vercel.app/)**: the first version
-- **[Model 2](https://projectile-motion-lab-woad.vercel.app/)**: this repo. It adds 4-decimal precision, the exact peak (Vy = 0) moment and 5 animation styles
+- **[Model 2.0](https://projectile-motion-chi.vercel.app/)**: the first version
+- **[Model 2.1](https://projectile-motion-lab-woad.vercel.app/)**: this repo. It adds 4-decimal precision, the exact peak (Vy = 0) moment and 5 animation styles
 
 ## Features
 - **Adjustable precision.** Shows 2 to 6 decimals; the default is 4 (0.0001). The time step can be as small as 0.000001 s.
