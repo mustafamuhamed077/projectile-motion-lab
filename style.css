@@ -22,15 +22,15 @@
   color-scheme: light;
 }
 [data-theme="dark"] {
-  --bg: #0a0d17;
-  --bg-grad: radial-gradient(1200px 600px at 10% -10%, rgba(79, 70, 229, .22) 0%, transparent 60%),
-             radial-gradient(900px 500px at 110% 0%, rgba(245, 158, 11, .10) 0%, transparent 55%);
-  --card: rgba(19, 24, 38, .78);
-  --card-border: rgba(255, 255, 255, .07);
-  --text: #e6e9f2;
-  --muted: #8b93a7;
-  --field: #0f1422;
-  --field-border: #262e44;
+  --bg: #000000;
+  --bg-grad: radial-gradient(1200px 600px at 10% -10%, rgba(255, 255, 255, .04) 0%, transparent 60%),
+             radial-gradient(900px 500px at 110% 0%, rgba(245, 158, 11, .05) 0%, transparent 55%);
+  --card: rgba(14, 14, 14, .9);
+  --card-border: rgba(255, 255, 255, .08);
+  --text: #ededed;
+  --muted: #8f8f8f;
+  --field: #0a0a0a;
+  --field-border: #2a2a2a;
   --accent: #818cf8;
   --accent-2: #6366f1;
   --accent-soft: rgba(129, 140, 248, .14);

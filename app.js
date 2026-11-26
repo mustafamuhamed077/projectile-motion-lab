@@ -117,15 +117,15 @@ const isDark = () => document.documentElement.dataset.theme === 'dark';
 function palette(style = app.style) {
   const dark = isDark();
   const base = dark
-    ? { bg: '#0d1220', grid: 'rgba(255,255,255,.06)', axis: '#475069', text: '#8b93a7',
-        path: '#818cf8', ball: '#f43f5e', ring: '#0d1220', peak: '#fbbf24', land: '#8b93a7',
-        vx: '#22d3ee', vy: '#f472b6', v: '#fbbf24', box: 'rgba(13,18,32,.92)', boxText: '#e6e9f2' }
+    ? { bg: '#050505', grid: 'rgba(255,255,255,.06)', axis: '#4a4a4a', text: '#8f8f8f',
+        path: '#818cf8', ball: '#f43f5e', ring: '#050505', peak: '#fbbf24', land: '#8f8f8f',
+        vx: '#22d3ee', vy: '#f472b6', v: '#fbbf24', box: 'rgba(10,10,10,.94)', boxText: '#ededed' }
     : { bg: '#ffffff', grid: '#edf0f5', axis: '#94a0b8', text: '#5b6478',
         path: '#4f46e5', ball: '#e11d48', ring: '#ffffff', peak: '#f59e0b', land: '#64748b',
         vx: '#0891b2', vy: '#db2777', v: '#d97706', box: 'rgba(255,255,255,.95)', boxText: '#0f172a' };
-  if (style === 'neon') return { ...base, bg: '#05060f', grid: 'rgba(129,140,248,.08)', axis: '#2a2f55',
-    text: '#6b7299', path: '#22d3ee', ball: '#f0abfc', ring: '#05060f', peak: '#fde047', land: '#6b7299',
-    box: 'rgba(5,6,15,.9)', boxText: '#e0f2fe' };
+  if (style === 'neon') return { ...base, bg: '#000000', grid: 'rgba(255,255,255,.05)', axis: '#333333',
+    text: '#777777', path: '#22d3ee', ball: '#f0abfc', ring: '#000000', peak: '#fde047', land: '#777777',
+    box: 'rgba(0,0,0,.9)', boxText: '#e0f2fe' };
   if (style === 'blueprint') return { ...base, bg: '#0b3a75', grid: 'rgba(255,255,255,.09)', axis: 'rgba(255,255,255,.75)',
     text: 'rgba(255,255,255,.7)', path: '#ffffff', ball: '#ffffff', ring: '#0b3a75', peak: '#fde68a', land: '#bfdbfe',
     box: 'rgba(8,44,92,.95)', boxText: '#ffffff' };
