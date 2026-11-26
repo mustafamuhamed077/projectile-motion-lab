@@ -9,9 +9,11 @@
   --muted: #5b6478;
   --field: #ffffff;
   --field-border: #d7dce6;
-  --accent: #4f46e5;
-  --accent-2: #6366f1;
-  --accent-soft: rgba(79, 70, 229, .1);
+  --accent: #3a3a3c;
+  --accent-2: #636366;
+  --accent-soft: rgba(60, 60, 67, .1);
+  --accent-grad: linear-gradient(135deg, #5c5c61, #2c2c2e);
+  --accent-glow: rgba(44, 44, 46, .45);
   --peak: #f59e0b;
   --peak-soft: rgba(245, 158, 11, .12);
   --danger: #dc2626;
@@ -31,9 +33,11 @@
   --muted: #8f8f8f;
   --field: #0a0a0a;
   --field-border: #2a2a2a;
-  --accent: #818cf8;
-  --accent-2: #6366f1;
-  --accent-soft: rgba(129, 140, 248, .14);
+  --accent: #c7c7cc;
+  --accent-2: #6e6e73;
+  --accent-soft: rgba(142, 142, 147, .16);
+  --accent-grad: linear-gradient(135deg, #7c7c82, #48484d);
+  --accent-glow: rgba(0, 0, 0, .8);
   --peak: #fbbf24;
   --peak-soft: rgba(251, 191, 36, .1);
   --danger: #f87171;
@@ -66,8 +70,8 @@ kbd { font: 11px var(--mono); padding: 1px 5px; border: 1px solid var(--field-bo
   width: 34px; height: 34px; border-radius: 10px; flex: none;
   background:
     radial-gradient(circle at 50% 38%, var(--peak) 0 4px, transparent 5px),
-    linear-gradient(135deg, #6366f1, #8b5cf6);
-  box-shadow: 0 6px 16px -6px rgba(99, 102, 241, .7);
+    var(--accent-grad);
+  box-shadow: 0 6px 16px -6px var(--accent-glow);
 }
 
 .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
@@ -116,7 +120,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   color: var(--text); background: transparent;
 }
 .btn:active { transform: translateY(1px); }
-.btn.primary { color: #fff; background: linear-gradient(135deg, var(--accent-2), #8b5cf6); box-shadow: 0 6px 18px -8px rgba(99, 102, 241, .8); }
+.btn.primary { color: #fff; background: var(--accent-grad); border-color: rgba(255, 255, 255, .08); box-shadow: 0 6px 18px -8px var(--accent-glow); }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.ghost { border-color: var(--field-border); background: var(--field); }
 .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
@@ -181,7 +185,7 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   transition: all .15s;
 }
 .chip:hover { color: var(--text); border-color: var(--accent); }
-.chip[aria-checked="true"] { color: #fff; border-color: transparent; background: linear-gradient(135deg, var(--accent-2), #8b5cf6); }
+.chip[aria-checked="true"] { color: #fff; border-color: rgba(255, 255, 255, .08); background: var(--accent-grad); }
 
 .stage-wrap { border-radius: 12px; overflow: hidden; border: 1px solid var(--card-border); }
 #stage { display: block; width: 100%; aspect-ratio: 16 / 9; min-height: 260px; }

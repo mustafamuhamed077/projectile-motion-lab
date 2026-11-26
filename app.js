@@ -118,10 +118,10 @@ function palette(style = app.style) {
   const dark = isDark();
   const base = dark
     ? { bg: '#050505', grid: 'rgba(255,255,255,.06)', axis: '#4a4a4a', text: '#8f8f8f',
-        path: '#818cf8', ball: '#f43f5e', ring: '#050505', peak: '#fbbf24', land: '#8f8f8f',
+        path: '#aeaeb2', ball: '#f43f5e', ring: '#050505', peak: '#fbbf24', land: '#8f8f8f',
         vx: '#22d3ee', vy: '#f472b6', v: '#fbbf24', box: 'rgba(10,10,10,.94)', boxText: '#ededed' }
     : { bg: '#ffffff', grid: '#edf0f5', axis: '#94a0b8', text: '#5b6478',
-        path: '#4f46e5', ball: '#e11d48', ring: '#ffffff', peak: '#f59e0b', land: '#64748b',
+        path: '#48484a', ball: '#e11d48', ring: '#ffffff', peak: '#f59e0b', land: '#64748b',
         vx: '#0891b2', vy: '#db2777', v: '#d97706', box: 'rgba(255,255,255,.95)', boxText: '#0f172a' };
   if (style === 'neon') return { ...base, bg: '#000000', grid: 'rgba(255,255,255,.05)', axis: '#333333',
     text: '#777777', path: '#22d3ee', ball: '#f0abfc', ring: '#000000', peak: '#fde047', land: '#777777',
