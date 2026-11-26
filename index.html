@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projectile Motion Lab</title>
+  <meta name="description" content="Interactive projectile motion simulator: trajectory, peak (Vy = 0) moment, animated styles and a high-precision motion table.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M3 28 Q16 -6 29 28' fill='none' stroke='%236366f1' stroke-width='3' stroke-linecap='round'/><circle cx='16' cy='11' r='4' fill='%23f59e0b'/></svg>">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // Apply saved theme before paint (avoids a flash of the wrong theme)
+    (function () {
+      var saved = localStorage.getItem('pml-theme');
+      var dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    })();
+  </script>
+</head>
+<body>
+<main class="wrap">
+
+  <!-- ───────────── Header ───────────── -->
+  <header class="top">
+    <div>
+      <h1><span class="logo" aria-hidden="true"></span>Projectile Motion Lab</h1>
+      <p class="sub">Enter launch values to get the trajectory, the exact peak moment (V<sub>y</sub> = 0), a live animation and a high-precision time table.</p>
+    </div>
+    <button id="themeBtn" class="icon-btn" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+      <svg class="sun" viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+      <svg class="moon" viewBox="0 0 24 24" width="20" height="20"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+    </button>
+  </header>
+
+  <!-- ───────────── Inputs + summary ───────────── -->
+  <section class="card">
+    <form id="form" class="inputs" novalidate>
+      <label class="field"><span>Initial speed <em>m/s</em></span>
+        <input id="speed" type="number" min="0" step="any" value="25" inputmode="decimal"></label>
+      <label class="field"><span>Launch angle <em>deg</em></span>
+        <input id="angle" type="number" min="0" max="90" step="any" value="45" inputmode="decimal"></label>
+      <label class="field"><span>Horizontal wind <em>m/s</em></span>
+        <input id="wind" type="number" step="any" value="0" inputmode="decimal"></label>
+      <label class="field"><span>Table time step <em>s</em></span>
+        <input id="dt" type="number" min="0.0001" step="any" value="0.1" inputmode="decimal"></label>
+      <label class="field"><span>Decimals</span>
+        <select id="precision">
+          <option value="2">2 · 0.01</option>
+          <option value="3">3 · 0.001</option>
+          <option value="4" selected>4 · 0.0001</option>
+          <option value="5">5 · 0.00001</option>
+          <option value="6">6 · 0.000001</option>
+        </select></label>
+      <button id="simulate" class="btn primary" type="submit">Simulate</button>
+    </form>
+    <div id="error" class="error" role="alert"></div>
+
+    <div class="summary">
+      <div class="metric"><span>Flight time</span><strong id="mFlight">–</strong></div>
+      <div class="metric"><span>Maximum height</span><strong id="mHeight">–</strong></div>
+      <div class="metric"><span>Horizontal range</span><strong id="mRange">–</strong></div>
+      <div class="metric"><span>Horizontal velocity</span><strong id="mVx">–</strong></div>
+      <div class="metric"><span>Initial V<sub>y</sub></span><strong id="mVy">–</strong></div>
+    </div>
+  </section>
+
+  <!-- ───────────── Peak (Vy = 0) panel ───────────── -->
+  <section id="peakCard" class="card peak-card">
+    <div class="peak-head">
+      <div>
+        <h2>Peak moment <span class="pill">V<sub>y</sub> = 0</span></h2>
+        <p id="peakNote" class="muted">The instant the projectile stops rising: t = V<sub>y0</sub> / g</p>
+      </div>
+      <button id="gotoPeak" class="btn ghost" type="button">Jump animation to peak</button>
+    </div>
+    <div class="peak-grid">
+      <div><span>Time</span><strong id="pT">–</strong></div>
+      <div><span>Position x</span><strong id="pX">–</strong></div>
+      <div><span>Position y</span><strong id="pY">–</strong></div>
+      <div><span>V<sub>x</sub></span><strong id="pVx">–</strong></div>
+      <div><span>V<sub>y</sub></span><strong id="pVy">–</strong></div>
+      <div><span>Speed |v|</span><strong id="pV">–</strong></div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <!-- ───────────── Animation ───────────── -->
+    <section class="card anim-card">
+      <div class="card-head">
+        <h2>Trajectory animation</h2>
+        <span id="status" class="status">Ready</span>
+      </div>
+
+      <div class="styles" role="radiogroup" aria-label="Animation style">
+        <button type="button" class="chip" data-style="classic"   role="radio" aria-checked="true">Classic</button>
+        <button type="button" class="chip" data-style="neon"      role="radio" aria-checked="false">Neon trail</button>
+        <button type="button" class="chip" data-style="vectors"   role="radio" aria-checked="false">Velocity vectors</button>
+        <button type="button" class="chip" data-style="strobe"    role="radio" aria-checked="false">Stroboscope</button>
+        <button type="button" class="chip" data-style="blueprint" role="radio" aria-checked="false">Blueprint</button>
+      </div>
+
+      <div class="stage-wrap">
+        <canvas id="stage" aria-label="Animated projectile trajectory"></canvas>
+      </div>
+
+      <div class="readout" aria-live="off">
+        <div><span>t</span><b id="rT">–</b><i>s</i></div>
+        <div><span>x</span><b id="rX">–</b><i>m</i></div>
+        <div><span>y</span><b id="rY">–</b><i>m</i></div>
+        <div><span>V<sub>x</sub></span><b id="rVx">–</b><i>m/s</i></div>
+        <div><span>V<sub>y</sub></span><b id="rVy">–</b><i>m/s</i></div>
+        <div><span>|v|</span><b id="rV">–</b><i>m/s</i></div>
+      </div>
+
+      <input id="scrub" class="scrub" type="range" min="0" max="10000" step="1" value="0" aria-label="Animation time">
+
+      <div class="controls">
+        <div class="group">
+          <button id="back" class="btn icon" type="button" title="Step back one time step (←)" aria-label="Step back">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M18 6 10 12l8 6V6ZM6 6h2v12H6z"/></svg></button>
+          <button id="play" class="btn primary play" type="button" title="Play / pause (Space)">
+            <svg class="i-play" viewBox="0 0 24 24" width="18" height="18"><path d="M7 5v14l12-7z"/></svg>
+            <svg class="i-pause" viewBox="0 0 24 24" width="18" height="18"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+            <span id="playLabel">Play</span></button>
+          <button id="fwd" class="btn icon" type="button" title="Step forward one time step (→)" aria-label="Step forward">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l8 6-8 6V6Zm10 0h2v12h-2z"/></svg></button>
+          <button id="reset" class="btn ghost" type="button">Reset</button>
+        </div>
+        <div class="group">
+          <label class="mini">Speed
+            <select id="rate">
+              <option value="0.1">0.1×</option>
+              <option value="0.25">0.25×</option>
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+            </select></label>
+          <label class="toggle"><input id="pausePeak" type="checkbox" checked><span></span>Pause at peak</label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────── Motion table ───────────── -->
+    <section class="card table-card">
+      <div class="card-head">
+        <h2>Motion table</h2>
+        <div class="group">
+          <label class="toggle"><input id="follow" type="checkbox" checked><span></span>Follow</label>
+          <button id="csv" class="btn ghost small" type="button">CSV</button>
+        </div>
+      </div>
+      <div class="table">
+        <div class="thead"><span>t (s)</span><span>x (m)</span><span>y (m)</span><span>V<sub>x</sub> (m/s)</span><span>V<sub>y</sub> (m/s)</span></div>
+        <div id="tbody" class="tbody" tabindex="0">
+          <div id="spacer" class="spacer"></div>
+          <div id="win" class="win"></div>
+        </div>
+      </div>
+      <p id="tableNote" class="muted small"></p>
+    </section>
+  </div>
+
+  <footer class="foot muted small">g = 9.81 m/s² · no air resistance · wind adds a constant horizontal velocity. Shortcuts: <kbd>Space</kbd> play/pause, <kbd>←</kbd> <kbd>→</kbd> step.</footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
