@@ -714,7 +714,12 @@ $('gotoPeak').addEventListener('click', () => {
 });
 $('csv').addEventListener('click', downloadCSV);
 document.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => selectStyle(b.dataset.style)));
-tbody.addEventListener('scroll', () => renderRows(), { passive: true });
+let rowsQueued = false;                          // at most one table re-render per frame
+tbody.addEventListener('scroll', () => {
+  if (rowsQueued) return;
+  rowsQueued = true;
+  requestAnimationFrame(() => { rowsQueued = false; renderRows(); });
+}, { passive: true });
 tbody.addEventListener('click', (e) => {          // click a row → jump the animation to that time
   const row = e.target.closest('.row');
   if (row) seek(app.times[Number(row.dataset.i)]);
